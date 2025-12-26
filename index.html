@@ -182,6 +182,28 @@
             box-shadow: var(--box-shadow);
         }
         
+        /* Password toggle button */
+        #togglePassword {
+            border-color: #ced4da;
+        }
+        
+        #togglePassword:hover {
+            background-color: #e9ecef;
+        }
+        
+        /* Modal delete header */
+        .modal-header.bg-danger {
+            background-color: #dc3545 !important;
+        }
+        
+        /* Password hint */
+        .text-muted code {
+            background-color: #f8f9fa;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .form-section {
@@ -258,7 +280,7 @@
                 <div class="col-md-8">
                     <h1><i class="fas fa-x-ray"></i> Form Data Radiologi</h1>
                     <p class="mb-0">Sistem input data pemeriksaan radiologi dengan penyimpanan Firebase</p>
-                    <small>Deployed on GitHub Pages</small>
+                    <small>Deployed on GitHub Pages | Password hapus: <code>123456</code></small>
                 </div>
                 <div class="col-md-4 text-end">
                     <img src="https://cdn-icons-png.flaticon.com/512/3063/3063812.png" alt="Radiology Icon" style="height: 80px; filter: brightness(0) invert(1);">
@@ -453,7 +475,7 @@
                         <option value="THORACHAL">THORACHAL</option>
                         <option value="THORACHOLUMBAL">THORACHOLUMBAL</option>
                         <option value="USG ABDOMEN">USG ABDOMEN</option>
-                        <option value="USG TIROID">USG TIROID</option>
+                        <option value="USG TIROID">USG TIroid</option>
                         <option value="USG MAMAE">USG MAMAE</option>
                         <option value="USG Dopler">USG Dopler</option>
                         <option value="USG Lain Lain">USG Lain Lain</option>
@@ -554,7 +576,41 @@
         <!-- Footer -->
         <div class="footer">
             <p>Sistem Form Radiologi &copy; 2023 | Dibuat dengan <i class="fas fa-heart text-danger"></i> untuk kebutuhan medis</p>
-            <p>Deployed on <a href="https://pages.github.com" target="_blank">GitHub Pages</a></p>
+            <p>Deployed on <a href="https://pages.github.com" target="_blank">GitHub Pages</a> | Password hapus: <code>123456</code></p>
+        </div>
+    </div>
+    
+    <!-- Modal Hapus Data -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteModalLabel"><i class="fas fa-trash"></i> Konfirmasi Hapus Data</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>PERINGATAN!</strong> Data yang dihapus tidak dapat dikembalikan.
+                    </div>
+                    <p>Anda akan menghapus data pasien: <strong id="deletePatientName">-</strong></p>
+                    <div class="mb-3">
+                        <label for="deletePassword" class="form-label">Masukkan Password untuk konfirmasi:</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="deletePassword" placeholder="Password: 123456">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Password: <code>123456</code></small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+                        <i class="fas fa-trash"></i> Hapus Data
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -693,12 +749,83 @@
         let database;
         let currentEditKey = null;
         
+        // Variabel untuk data yang akan dihapus
+        let dataToDelete = {
+            key: null,
+            patientName: null
+        };
+        
         // Inisialisasi Firebase saat halaman dimuat
         document.addEventListener('DOMContentLoaded', function() {
             initFirebase();
             setupEventListeners();
             setupDateFilter();
+            setupDeleteModal();
         });
+        
+        // Setup modal hapus
+        function setupDeleteModal() {
+            // Toggle show/hide password
+            document.getElementById('togglePassword').addEventListener('click', function() {
+                const passwordInput = document.getElementById('deletePassword');
+                const icon = this.querySelector('i');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+            
+            // Fungsi untuk konfirmasi hapus
+            document.getElementById('btnConfirmDelete').addEventListener('click', function() {
+                const password = document.getElementById('deletePassword').value;
+                const correctPassword = '123456'; // Password yang ditentukan
+                
+                if (password !== correctPassword) {
+                    showAlert('Password salah! Data tidak dihapus.', 'danger');
+                    document.getElementById('deletePassword').focus();
+                    document.getElementById('deletePassword').select();
+                    return;
+                }
+                
+                if (dataToDelete.key) {
+                    hapusData(dataToDelete.key);
+                    
+                    // Tutup modal
+                    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                    deleteModal.hide();
+                }
+            });
+            
+            // Reset password field ketika modal ditutup
+            document.getElementById('deleteModal').addEventListener('hidden.bs.modal', function() {
+                document.getElementById('deletePassword').value = '';
+                document.getElementById('deletePassword').type = 'password';
+                document.getElementById('togglePassword').querySelector('i').className = 'fas fa-eye';
+            });
+        }
+        
+        // Fungsi untuk membuka modal hapus
+        function openDeleteModal(key, patientName) {
+            dataToDelete.key = key;
+            dataToDelete.patientName = patientName;
+            
+            document.getElementById('deletePatientName').textContent = patientName;
+            document.getElementById('deletePassword').value = '';
+            
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+            
+            // Fokus ke input password
+            setTimeout(() => {
+                document.getElementById('deletePassword').focus();
+            }, 500);
+        }
         
         // Fungsi untuk inisialisasi Firebase
         function initFirebase() {
@@ -1007,7 +1134,8 @@
                     document.querySelectorAll('.delete-btn').forEach(btn => {
                         btn.addEventListener('click', function() {
                             const key = this.getAttribute('data-key');
-                            hapusData(key);
+                            const patientName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+                            openDeleteModal(key, patientName);
                         });
                     });
                 })
@@ -1102,21 +1230,22 @@
                 });
         }
         
-        // Fungsi untuk menghapus data
+        // Fungsi untuk menghapus data (dipanggil dari modal konfirmasi)
         function hapusData(key) {
             if (!firebaseInitialized) return;
             
-            if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-                database.ref('radiologi/' + key).remove()
-                    .then(() => {
-                        showAlert('Data berhasil dihapus!', 'success');
-                        muatData();
-                    })
-                    .catch((error) => {
-                        console.error("Error menghapus data:", error);
-                        showAlert('Gagal menghapus data: ' + error.message, 'danger');
-                    });
-            }
+            // Tampilkan loading
+            showAlert('Menghapus data...', 'info');
+            
+            database.ref('radiologi/' + key).remove()
+                .then(() => {
+                    showAlert('Data berhasil dihapus!', 'success');
+                    muatData();
+                })
+                .catch((error) => {
+                    console.error("Error menghapus data:", error);
+                    showAlert('Gagal menghapus data: ' + error.message, 'danger');
+                });
         }
         
         // Fungsi untuk mengekspor data
@@ -1235,7 +1364,8 @@
                         document.querySelectorAll('.delete-btn').forEach(btn => {
                             btn.addEventListener('click', function() {
                                 const key = this.getAttribute('data-key');
-                                hapusData(key);
+                                const patientName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+                                openDeleteModal(key, patientName);
                             });
                         });
                     }
@@ -1321,7 +1451,8 @@
                         document.querySelectorAll('.delete-btn').forEach(btn => {
                             btn.addEventListener('click', function() {
                                 const key = this.getAttribute('data-key');
-                                hapusData(key);
+                                const patientName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
+                                openDeleteModal(key, patientName);
                             });
                         });
                     }
