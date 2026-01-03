@@ -237,6 +237,23 @@
             box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
         }
         
+        /* Time input styling */
+        .time-input-group {
+            position: relative;
+        }
+        
+        .time-input-group .form-control {
+            padding-right: 40px;
+        }
+        
+        .time-input-group .time-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
         /* Animasi untuk loading */
         @keyframes pulse {
             0% { opacity: 1; }
@@ -255,6 +272,17 @@
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
+        }
+        
+        /* Cito badge styling */
+        .badge-cito {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .badge-reguler {
+            background-color: #28a745;
+            color: white;
         }
     </style>
     
@@ -393,9 +421,34 @@
             <h5 class="mt-4 mb-3 text-primary"><i class="fas fa-stethoscope"></i> Informasi Pemeriksaan</h5>
             <div class="row">
                 <div class="col-md-3 mb-3">
+                    <label class="form-label required">JENIS PEMERIKSAAN</label>
+                    <select id="inputTipePemeriksaan" class="form-select">
+                        <option value="">Pilih Jenis</option>
+                        <option value="Reguler">Reguler</option>
+                        <option value="Cito">Cito</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label required">WAKTU MULAI PERIKSA</label>
+                    <div class="time-input-group">
+                        <input type="time" id="inputWaktuMulai" class="form-control" placeholder="HH:MM">
+                        <span class="time-icon"><i class="fas fa-clock"></i></span>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label required">WAKTU SELESAI PERIKSA</label>
+                    <div class="time-input-group">
+                        <input type="time" id="inputWaktuSelesai" class="form-control" placeholder="HH:MM">
+                        <span class="time-icon"><i class="fas fa-clock"></i></span>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
                     <label class="form-label required">JUMLAH FILM</label>
                     <input type="number" id="inputJumlahFilm" class="form-control" placeholder="Jumlah film" min="0">
                 </div>
+            </div>
+            
+            <div class="row">
                 <div class="col-md-3 mb-3">
                     <label class="form-label required">PENGULANGAN FOTO</label>
                     <select id="inputPengulanganFoto" class="form-select">
@@ -417,17 +470,6 @@
                         <option value="Lain">Lain</option>
                     </select>
                 </div>
-            </div>
-            
-            <!-- Input manual untuk radiografer lain -->
-            <div class="row mb-4" id="radiograferLainContainer" style="display:none;">
-                <div class="col-md-12">
-                    <label class="form-label">Nama Radiografer Lain</label>
-                    <input type="text" id="inputRadiograferLain" class="form-control" placeholder="Ketik nama radiografer lain">
-                </div>
-            </div>
-            
-            <div class="row">
                 <div class="col-md-3 mb-3">
                     <label class="form-label required">JASA BAHAYA RADIASI</label>
                     <select id="inputBahayaRadiasi" class="form-select">
@@ -439,6 +481,17 @@
                         <option value="7000">7000</option>
                     </select>
                 </div>
+            </div>
+            
+            <!-- Input manual untuk radiografer lain -->
+            <div class="row mb-4" id="radiograferLainContainer" style="display:none;">
+                <div class="col-md-12">
+                    <label class="form-label">Nama Radiografer Lain</label>
+                    <input type="text" id="inputRadiograferLain" class="form-control" placeholder="Ketik nama radiografer lain">
+                </div>
+            </div>
+            
+            <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label required">RADIOLOG</label>
                     <select id="inputRadiolog" class="form-select">
@@ -480,6 +533,10 @@
                         <option value="USG Lain Lain">USG Lain Lain</option>
                         <option value="X Ray Lain">X Ray Lain</option>
                     </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">DURASI (menit)</label>
+                    <input type="number" id="inputDurasi" class="form-control" placeholder="Otomatis" readonly>
                 </div>
             </div>
             
@@ -557,6 +614,9 @@
                             <th>NAMA PASIEN</th>
                             <th>TGL PERIKSA</th>
                             <th>JENIS PERIKSA</th>
+                            <th>WAKTU MULAI</th>
+                            <th>WAKTU SELESAI</th>
+                            <th>DURASI</th>
                             <th>KELAS</th>
                             <th>TARIF</th>
                             <th>JASA DOKTER</th>
@@ -565,7 +625,7 @@
                     </thead>
                     <tbody id="dataTableBody">
                         <tr>
-                            <td colspan="8" class="text-center">Memuat data...</td>
+                            <td colspan="11" class="text-center">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -760,6 +820,7 @@
             setupEventListeners();
             setupDateFilter();
             setupDeleteModal();
+            setupTimeCalculations();
         });
         
         // Setup modal hapus
@@ -807,6 +868,52 @@
                 document.getElementById('deletePassword').type = 'password';
                 document.getElementById('togglePassword').querySelector('i').className = 'fas fa-eye';
             });
+        }
+        
+        // Setup waktu kalkulasi
+        function setupTimeCalculations() {
+            const waktuMulai = document.getElementById('inputWaktuMulai');
+            const waktuSelesai = document.getElementById('inputWaktuSelesai');
+            const inputDurasi = document.getElementById('inputDurasi');
+            
+            function calculateDuration() {
+                if (waktuMulai.value && waktuSelesai.value) {
+                    const start = waktuMulai.value.split(':');
+                    const end = waktuSelesai.value.split(':');
+                    
+                    const startHour = parseInt(start[0]);
+                    const startMinute = parseInt(start[1]);
+                    const endHour = parseInt(end[0]);
+                    const endMinute = parseInt(end[1]);
+                    
+                    let totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+                    
+                    // Jika waktu selesai lebih kecil dari waktu mulai, diasumsikan melewati tengah malam
+                    if (totalMinutes < 0) {
+                        totalMinutes += 24 * 60;
+                    }
+                    
+                    inputDurasi.value = totalMinutes;
+                } else {
+                    inputDurasi.value = '';
+                }
+            }
+            
+            waktuMulai.addEventListener('change', calculateDuration);
+            waktuSelesai.addEventListener('change', calculateDuration);
+            
+            // Set waktu default
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            waktuMulai.value = currentTime;
+            
+            // Set waktu selesai default (1 jam kemudian)
+            const endTime = new Date(now.getTime() + 60 * 60000);
+            const endTimeStr = endTime.getHours().toString().padStart(2, '0') + ':' + endTime.getMinutes().toString().padStart(2, '0');
+            waktuSelesai.value = endTimeStr;
+            
+            // Hitung durasi awal
+            calculateDuration();
         }
         
         // Fungsi untuk membuka modal hapus
@@ -1020,6 +1127,10 @@
                 kelas: document.getElementById('inputKelas').value,
                 jenisDokter: document.getElementById('inputJenisDokter').value,
                 dokterPengirim: getDokterPengirimValue(),
+                tipePemeriksaan: document.getElementById('inputTipePemeriksaan').value,
+                waktuMulai: document.getElementById('inputWaktuMulai').value,
+                waktuSelesai: document.getElementById('inputWaktuSelesai').value,
+                durasi: document.getElementById('inputDurasi').value,
                 jumlahFilm: document.getElementById('inputJumlahFilm').value,
                 pengulanganFoto: document.getElementById('inputPengulanganFoto').value,
                 faktorEksposi: document.getElementById('inputFaktorEksposi').value,
@@ -1068,14 +1179,14 @@
             if (!firebaseInitialized) return;
             
             const tableBody = document.getElementById('dataTableBody');
-            tableBody.innerHTML = '<tr><td colspan="8" class="text-center loading">Memuat data...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="11" class="text-center loading">Memuat data...</td></tr>';
             
             database.ref('radiologi').once('value')
                 .then((snapshot) => {
                     const data = snapshot.val();
                     
                     if (!data) {
-                        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data yang tersimpan</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center">Belum ada data yang tersimpan</td></tr>';
                         return;
                     }
                     
@@ -1099,11 +1210,19 @@
                         const tarifFormatted = item.tarifPemeriksaan ? formatRupiah(parseInt(item.tarifPemeriksaan)) : '-';
                         const jasaFormatted = item.jasaDokter ? formatRupiah(parseInt(item.jasaDokter)) : '-';
                         
+                        // Badge untuk tipe pemeriksaan
+                        const tipeBadge = item.tipePemeriksaan === 'Cito' ? 
+                            '<span class="badge badge-cito">CITO</span>' : 
+                            '<span class="badge badge-reguler">REGULER</span>';
+                        
                         row.innerHTML = `
                             <td>${item.no || '-'}</td>
                             <td>${item.namaPasien || '-'}</td>
                             <td>${tglPeriksa}</td>
-                            <td>${item.jenisPemeriksaan || '-'}</td>
+                            <td>${tipeBadge}</td>
+                            <td>${item.waktuMulai || '-'}</td>
+                            <td>${item.waktuSelesai || '-'}</td>
+                            <td>${item.durasi ? item.durasi + ' menit' : '-'}</td>
                             <td>${item.kelas || '-'}</td>
                             <td>${tarifFormatted}</td>
                             <td>${jasaFormatted}</td>
@@ -1140,7 +1259,7 @@
                 })
                 .catch((error) => {
                     console.error("Error memuat data:", error);
-                    tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Gagal memuat data: ' + error.message + '</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">Gagal memuat data: ' + error.message + '</td></tr>';
                 });
         }
         
@@ -1173,6 +1292,29 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">JENIS PEMERIKSAAN</label>
+                                <select id="editTipePemeriksaan" class="form-select">
+                                    <option value="Reguler" ${data.tipePemeriksaan === 'Reguler' ? 'selected' : ''}>Reguler</option>
+                                    <option value="Cito" ${data.tipePemeriksaan === 'Cito' ? 'selected' : ''}>Cito</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">WAKTU MULAI</label>
+                                <input type="time" id="editWaktuMulai" class="form-control" value="${data.waktuMulai || ''}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">WAKTU SELESAI</label>
+                                <input type="time" id="editWaktuSelesai" class="form-control" value="${data.waktuSelesai || ''}">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">DURASI (menit)</label>
+                                <input type="number" id="editDurasi" class="form-control" value="${data.durasi || ''}" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">JENIS PEMERIKSAAN</label>
                                 <input type="text" id="editJenisPemeriksaan" class="form-control" value="${data.jenisPemeriksaan || ''}">
                             </div>
                         </div>
@@ -1189,6 +1331,36 @@
                     `;
                     
                     document.getElementById('editFormContainer').innerHTML = editForm;
+                    
+                    // Setup durasi calculation untuk form edit
+                    const editWaktuMulai = document.getElementById('editWaktuMulai');
+                    const editWaktuSelesai = document.getElementById('editWaktuSelesai');
+                    const editDurasi = document.getElementById('editDurasi');
+                    
+                    function calculateEditDuration() {
+                        if (editWaktuMulai.value && editWaktuSelesai.value) {
+                            const start = editWaktuMulai.value.split(':');
+                            const end = editWaktuSelesai.value.split(':');
+                            
+                            const startHour = parseInt(start[0]);
+                            const startMinute = parseInt(start[1]);
+                            const endHour = parseInt(end[0]);
+                            const endMinute = parseInt(end[1]);
+                            
+                            let totalMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+                            
+                            if (totalMinutes < 0) {
+                                totalMinutes += 24 * 60;
+                            }
+                            
+                            editDurasi.value = totalMinutes;
+                        } else {
+                            editDurasi.value = '';
+                        }
+                    }
+                    
+                    editWaktuMulai.addEventListener('change', calculateEditDuration);
+                    editWaktuSelesai.addEventListener('change', calculateEditDuration);
                     
                     // Tampilkan modal
                     const editModal = new bootstrap.Modal(document.getElementById('editModal'));
@@ -1208,6 +1380,10 @@
                 no: document.getElementById('editNo').value,
                 namaPasien: document.getElementById('editNamaPasien').value,
                 tglPemeriksaan: document.getElementById('editTglPemeriksaan').value,
+                tipePemeriksaan: document.getElementById('editTipePemeriksaan').value,
+                waktuMulai: document.getElementById('editWaktuMulai').value,
+                waktuSelesai: document.getElementById('editWaktuSelesai').value,
+                durasi: document.getElementById('editDurasi').value,
                 jenisPemeriksaan: document.getElementById('editJenisPemeriksaan').value,
                 tarifPemeriksaan: document.getElementById('editTarifPemeriksaan').value,
                 jasaDokter: document.getElementById('editJasaDokter').value,
@@ -1261,11 +1437,11 @@
                     }
                     
                     // Konversi data ke format CSV
-                    let csv = 'NO,KODE_PENJAMIN,TGL_PEMERIKSAAN,NAMA_PASIEN,JENIS_KELAMIN,KELAS,JENIS_DOKTER,DOKTER_PENGIRIM,JUMLAH_FILM,PENGULANGAN_FOTO,FAKTOR_EKSPOSI,RADIOGRAFER,BAHAYA_RADIASI,RADIOLOG,JENIS_PEMERIKSAAN,TARIF,JASA_DOKTER,TIMESTAMP\n';
+                    let csv = 'NO,KODE_PENJAMIN,TGL_PEMERIKSAAN,NAMA_PASIEN,JENIS_KELAMIN,KELAS,JENIS_DOKTER,DOKTER_PENGIRIM,TIPE_PEMERIKSAAN,WAKTU_MULAI,WAKTU_SELESAI,DURASI,JUMLAH_FILM,PENGULANGAN_FOTO,FAKTOR_EKSPOSI,RADIOGRAFER,BAHAYA_RADIASI,RADIOLOG,JENIS_PEMERIKSAAN,TARIF,JASA_DOKTER,TIMESTAMP\n';
                     
                     Object.keys(data).forEach(key => {
                         const item = data[key];
-                        csv += `"${item.no || ''}","${item.kodePenjamin || ''}","${item.tglPemeriksaan || ''}","${item.namaPasien || ''}","${item.jenisKelamin || ''}","${item.kelas || ''}","${item.jenisDokter || ''}","${item.dokterPengirim || ''}","${item.jumlahFilm || ''}","${item.pengulanganFoto || ''}","${item.faktorEksposi || ''}","${item.radiografer || ''}","${item.bahayaRadiasi || ''}","${item.radiolog || ''}","${item.jenisPemeriksaan || ''}","${item.tarifPemeriksaan || ''}","${item.jasaDokter || ''}","${item.timestamp || ''}"\n`;
+                        csv += `"${item.no || ''}","${item.kodePenjamin || ''}","${item.tglPemeriksaan || ''}","${item.namaPasien || ''}","${item.jenisKelamin || ''}","${item.kelas || ''}","${item.jenisDokter || ''}","${item.dokterPengirim || ''}","${item.tipePemeriksaan || ''}","${item.waktuMulai || ''}","${item.waktuSelesai || ''}","${item.durasi || ''}","${item.jumlahFilm || ''}","${item.pengulanganFoto || ''}","${item.faktorEksposi || ''}","${item.radiografer || ''}","${item.bahayaRadiasi || ''}","${item.radiolog || ''}","${item.jenisPemeriksaan || ''}","${item.tarifPemeriksaan || ''}","${item.jasaDokter || ''}","${item.timestamp || ''}"\n`;
                     });
                     
                     // Buat blob dan download
@@ -1294,14 +1470,14 @@
             if (!firebaseInitialized) return;
             
             const tableBody = document.getElementById('dataTableBody');
-            tableBody.innerHTML = '<tr><td colspan="8" class="text-center loading">Memfilter data...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="11" class="text-center loading">Memfilter data...</td></tr>';
             
             database.ref('radiologi').once('value')
                 .then((snapshot) => {
                     const data = snapshot.val();
                     
                     if (!data) {
-                        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data yang tersimpan</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center">Belum ada data yang tersimpan</td></tr>';
                         return;
                     }
                     
@@ -1324,12 +1500,20 @@
                             const tarifFormatted = item.tarifPemeriksaan ? formatRupiah(parseInt(item.tarifPemeriksaan)) : '-';
                             const jasaFormatted = item.jasaDokter ? formatRupiah(parseInt(item.jasaDokter)) : '-';
                             
+                            // Badge untuk tipe pemeriksaan
+                            const tipeBadge = item.tipePemeriksaan === 'Cito' ? 
+                                '<span class="badge badge-cito">CITO</span>' : 
+                                '<span class="badge badge-reguler">REGULER</span>';
+                            
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${item.no || '-'}</td>
                                 <td>${item.namaPasien || '-'}</td>
                                 <td>${tglPeriksa}</td>
-                                <td>${item.jenisPemeriksaan || '-'}</td>
+                                <td>${tipeBadge}</td>
+                                <td>${item.waktuMulai || '-'}</td>
+                                <td>${item.waktuSelesai || '-'}</td>
+                                <td>${item.durasi ? item.durasi + ' menit' : '-'}</td>
                                 <td>${item.kelas || '-'}</td>
                                 <td>${tarifFormatted}</td>
                                 <td>${jasaFormatted}</td>
@@ -1350,7 +1534,7 @@
                     });
                     
                     if (!hasData) {
-                        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada data untuk bulan yang dipilih</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center">Tidak ada data untuk bulan yang dipilih</td></tr>';
                     } else {
                         // Tambahkan event listener untuk tombol edit dan hapus
                         document.querySelectorAll('.edit-btn').forEach(btn => {
@@ -1371,7 +1555,7 @@
                 })
                 .catch((error) => {
                     console.error("Error memfilter data:", error);
-                    tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Gagal memfilter data: ' + error.message + '</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">Gagal memfilter data: ' + error.message + '</td></tr>';
                 });
         }
         
@@ -1380,14 +1564,14 @@
             if (!firebaseInitialized) return;
             
             const tableBody = document.getElementById('dataTableBody');
-            tableBody.innerHTML = '<tr><td colspan="8" class="text-center loading">Mencari data...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="11" class="text-center loading">Mencari data...</td></tr>';
             
             database.ref('radiologi').once('value')
                 .then((snapshot) => {
                     const data = snapshot.val();
                     
                     if (!data) {
-                        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data yang tersimpan</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center">Belum ada data yang tersimpan</td></tr>';
                         return;
                     }
                     
@@ -1411,12 +1595,20 @@
                             const tarifFormatted = item.tarifPemeriksaan ? formatRupiah(parseInt(item.tarifPemeriksaan)) : '-';
                             const jasaFormatted = item.jasaDokter ? formatRupiah(parseInt(item.jasaDokter)) : '-';
                             
+                            // Badge untuk tipe pemeriksaan
+                            const tipeBadge = item.tipePemeriksaan === 'Cito' ? 
+                                '<span class="badge badge-cito">CITO</span>' : 
+                                '<span class="badge badge-reguler">REGULER</span>';
+                            
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${item.no || '-'}</td>
                                 <td>${item.namaPasien || '-'}</td>
                                 <td>${tglPeriksa}</td>
-                                <td>${item.jenisPemeriksaan || '-'}</td>
+                                <td>${tipeBadge}</td>
+                                <td>${item.waktuMulai || '-'}</td>
+                                <td>${item.waktuSelesai || '-'}</td>
+                                <td>${item.durasi ? item.durasi + ' menit' : '-'}</td>
                                 <td>${item.kelas || '-'}</td>
                                 <td>${tarifFormatted}</td>
                                 <td>${jasaFormatted}</td>
@@ -1437,7 +1629,7 @@
                     });
                     
                     if (!hasData) {
-                        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada data yang sesuai dengan pencarian</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center">Tidak ada data yang sesuai dengan pencarian</td></tr>';
                     } else {
                         // Tambahkan event listener untuk tombol edit dan hapus
                         document.querySelectorAll('.edit-btn').forEach(btn => {
@@ -1458,7 +1650,7 @@
                 })
                 .catch((error) => {
                     console.error("Error mencari data:", error);
-                    tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Gagal mencari data: ' + error.message + '</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">Gagal mencari data: ' + error.message + '</td></tr>';
                 });
         }
         
@@ -1528,7 +1720,8 @@
             const requiredFields = [
                 'inputNo', 'inputKodePenjamin', 'inputTglPemeriksaan', 
                 'inputNamaPasien', 'inputJenisKelamin', 'inputKelas',
-                'inputJenisDokter', 'inputDokterPengirim', 'inputJumlahFilm',
+                'inputJenisDokter', 'inputDokterPengirim', 'inputTipePemeriksaan',
+                'inputWaktuMulai', 'inputWaktuSelesai', 'inputJumlahFilm',
                 'inputPengulanganFoto', 'inputFaktorEksposi', 'inputRadiografer',
                 'inputBahayaRadiasi', 'inputRadiolog', 'inputJenisPemeriksaan'
             ];
@@ -1538,6 +1731,30 @@
                 if (!field.value.trim()) {
                     showAlert(`Field ${field.previousElementSibling.innerText} harus diisi!`, 'danger');
                     field.focus();
+                    return false;
+                }
+            }
+            
+            // Validasi waktu (waktu selesai harus setelah waktu mulai)
+            const waktuMulai = document.getElementById('inputWaktuMulai').value;
+            const waktuSelesai = document.getElementById('inputWaktuSelesai').value;
+            
+            if (waktuMulai && waktuSelesai) {
+                const start = waktuMulai.split(':');
+                const end = waktuSelesai.split(':');
+                
+                const startHour = parseInt(start[0]);
+                const startMinute = parseInt(start[1]);
+                const endHour = parseInt(end[0]);
+                const endMinute = parseInt(end[1]);
+                
+                const totalStart = startHour * 60 + startMinute;
+                const totalEnd = endHour * 60 + endMinute;
+                
+                // Jika waktu selesai sama atau sebelum waktu mulai (kecuali melewati tengah malam)
+                if (totalEnd <= totalStart && totalEnd > 0) {
+                    showAlert('Waktu selesai harus setelah waktu mulai!', 'danger');
+                    document.getElementById('inputWaktuSelesai').focus();
                     return false;
                 }
             }
@@ -1591,7 +1808,7 @@
         // Fungsi untuk mereset form
         function resetForm() {
             // Reset semua input kecuali search dan filter
-            document.querySelectorAll('#inputNo, #inputKodePenjamin, #inputTglPemeriksaan, #inputNamaPasien, #inputJenisKelamin, #inputKelas, #inputJenisDokter, #inputDokterPengirim, #inputJumlahFilm, #inputPengulanganFoto, #inputFaktorEksposi, #inputRadiografer, #inputBahayaRadiasi, #inputRadiolog, #inputJenisPemeriksaan, #inputDokterLain, #inputRadiograferLain, #inputRadiologLain, #inputTarifLain, #inputJasaDokterLain, #inputJasaDokterUSG').forEach(element => {
+            document.querySelectorAll('#inputNo, #inputKodePenjamin, #inputTglPemeriksaan, #inputNamaPasien, #inputJenisKelamin, #inputKelas, #inputJenisDokter, #inputDokterPengirim, #inputTipePemeriksaan, #inputWaktuMulai, #inputWaktuSelesai, #inputDurasi, #inputJumlahFilm, #inputPengulanganFoto, #inputFaktorEksposi, #inputRadiografer, #inputBahayaRadiasi, #inputRadiolog, #inputJenisPemeriksaan, #inputDokterLain, #inputRadiograferLain, #inputRadiologLain, #inputTarifLain, #inputJasaDokterLain, #inputJasaDokterUSG').forEach(element => {
                 element.value = '';
             });
             
@@ -1612,6 +1829,22 @@
             
             // Reset datepicker ke hari ini
             document.getElementById('inputTglPemeriksaan').value = new Date().toISOString().slice(0, 10);
+            
+            // Set waktu default
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('inputWaktuMulai').value = currentTime;
+            
+            // Set waktu selesai default (1 jam kemudian)
+            const endTime = new Date(now.getTime() + 60 * 60000);
+            const endTimeStr = endTime.getHours().toString().padStart(2, '0') + ':' + endTime.getMinutes().toString().padStart(2, '0');
+            document.getElementById('inputWaktuSelesai').value = endTimeStr;
+            
+            // Hitung durasi
+            setTimeout(() => {
+                const event = new Event('change');
+                document.getElementById('inputWaktuSelesai').dispatchEvent(event);
+            }, 100);
             
             // Fokus ke input pertama
             document.getElementById('inputNo').focus();
@@ -1656,8 +1889,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
